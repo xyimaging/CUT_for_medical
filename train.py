@@ -78,3 +78,4 @@ if __name__ == '__main__':
 
 # python train.py --dataroot ./datasets/05_04_cycle30_linear255 --name 05_04_cycle30_linear255 --CUT_mode CUT --n_epochs 40 --n_epochs_decay 40 --input_nc 1 --output_nc 1
 # python test.py --dataroot D:/Lab/cyclegan/sMRI_harmonization_dataset/datasets/05_12_fakeall_linear255 --name 05_04_cycle30_linear255 --CUT_mode CUT --phase test --input_nc 1 --output_nc 1 --num_test 13124
+# python train.py --dataroot D:/Lab/cyclegan/sMRI_harmonization_dataset/datasets/05_04_cycle30_linear255 --name 0602_0504data_l1identity --CUT_mode CUT --n_epochs 40 --n_epochs_decay 40 --input_nc 1 --output_nc 1

@@ -85,7 +85,7 @@ class CUTModel(BaseModel):
             for nce_layer in self.nce_layers:
                 self.criterionNCE.append(PatchNCELoss(opt).to(self.device))
 
-            self.criterionIdt = torch.nn.L1Loss().to(self.device)
+            self.criterionIdt = torch.nn.L1Loss().to(self.device) # TODO here defines a li idt
             self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, opt.beta2))
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, opt.beta2))
             self.optimizers.append(self.optimizer_G)
@@ -151,10 +151,17 @@ class CUTModel(BaseModel):
             if self.flipped_for_equivariance:
                 self.real = torch.flip(self.real, [3])
 
+        # explanation: self.real = [self.real_A, self._real_B], self.fake = G(self.real), self.fake_B = G(self.realA), self.idtB = G(self.realB)
         self.fake = self.netG(self.real)
         self.fake_B = self.fake[:self.real_A.size(0)]
-        if self.opt.nce_idt:
+        # print('self.fake_B') # torch.Size([1, 1, 256, 256])
+        # print(self.fake_B.shape)
+        if self.opt.nce_idt: # TODO here is how the self.idt_B generated
             self.idt_B = self.fake[self.real_A.size(0):]
+            # print('self.idt_B') # torch.Size([1, 1, 256, 256])
+            # print(self.idt_B.shape)
+            # print('idtB-fakeB = ')
+            # print(self.idt_B - self.fake_B)
 
     def compute_D_loss(self):
         """Calculate GAN loss for the discriminator"""
@@ -186,9 +193,12 @@ class CUTModel(BaseModel):
         else:
             self.loss_NCE, self.loss_NCE_bd = 0.0, 0.0
 
-        if self.opt.nce_idt and self.opt.lambda_NCE > 0.0:
-            self.loss_NCE_Y = self.calculate_NCE_loss(self.real_B, self.idt_B)
-            loss_NCE_both = (self.loss_NCE + self.loss_NCE_Y) * 0.5
+        if self.opt.nce_idt and self.opt.lambda_NCE > 0.0: # TODO here is the nce_idt
+            # self.loss_NCE_Y = self.calculate_NCE_loss(self.real_B, self.idt_B) # self.idt_B is
+            # 06022022 change the loss_nce_y to l1
+            self.loss_NCE_Y = self.criterionIdt(self.real_B, self.idt_B)*5
+            # loss_NCE_both = (self.loss_NCE + self.loss_NCE_Y) * 0.5
+            loss_NCE_both = (self.loss_NCE + self.loss_NCE_Y)* 0.5
         else:
             loss_NCE_both = self.loss_NCE
 
@@ -197,7 +207,7 @@ class CUTModel(BaseModel):
 
     def calculate_NCE_loss(self, src, tgt):
         n_layers = len(self.nce_layers)
-        feat_q = self.netG(tgt, self.nce_layers, encode_only=True)
+        feat_q = self.netG(tgt, self.nce_layers, encode_only=True) # TODO calculate the multi-layers nce
 
         if self.opt.flip_equivariance and self.flipped_for_equivariance:
             feat_q = [torch.flip(fq, [3]) for fq in feat_q]
